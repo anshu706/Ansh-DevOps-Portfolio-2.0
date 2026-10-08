@@ -1,37 +1,135 @@
 import React, { useState } from 'react';
 import { 
   ExternalLink, 
-  Terminal, 
   Layers, 
-  Activity, 
-  ShieldCheck, 
   CheckCircle2, 
-  AlertTriangle,
-  Play,
-  RotateCcw,
-  Sparkles,
-  Server,
-  Network,
-  Cpu,
   ChevronRight,
-  Boxes
+  FileCode,
+  BookOpen,
+  ArrowUpRight
 } from 'lucide-react';
 import { GitHubIcon } from './Icons';
 import { projects } from '../data/portfolioData';
 
+// Realistic sample configuration snippets for interviewers to see real code
+const projectCodeSnippets = {
+  "devops-pipeline": {
+    filename: ".github/workflows/deploy.yml",
+    language: "yaml",
+    code: `name: Build, Scan & Deploy
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Cache Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          tags: ansh706/app:\${{ github.sha }}
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Run Trivy Security Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ansh706/app:\${{ github.sha }}
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'`
+  },
+  "terraform-aws-infra": {
+    filename: "terraform/modules/vpc/main.tf",
+    language: "hcl",
+    code: `terraform {
+  required_version = ">= 1.5.0"
+  backend "s3" {
+    bucket         = "ansh-tf-state-storage"
+    key            = "prod/terraform.tfstate"
+    region         = "ap-south-1"
+    dynamodb_table = "terraform-state-locks"
+    encrypt        = true
+  }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = {
+    Name        = "prod-vpc"
+    Environment = "production"
+    ManagedBy   = "Terraform"
+  }
+}`
+  },
+  "monitoring-observability": {
+    filename: "docker-compose.monitoring.yml",
+    language: "yaml",
+    code: `version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=15d'
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: node-exporter
+    restart: unless-stopped
+    ports:
+      - "9100:9100"`
+  },
+  "threat-zone": {
+    filename: ".github/workflows/security-audit.yml",
+    language: "yaml",
+    code: `name: DevSecOps Shift-Left Scan
+on: [pull_request]
+
+jobs:
+  security-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan for Leaked Secrets (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: \${{ secrets.GITHUB_TOKEN }}
+
+      - name: IaC Security Scan (tfsec)
+        uses: aquasecurity/tfsec-action@v1.0.0
+        with:
+          soft_fail: false`
+  }
+};
+
 export const ProjectsSection = () => {
   const [activeProjectIndex, setActiveProjectIndex] = useState(0);
-  const [activePreviewTab, setActivePreviewTab] = useState('terminal'); // 'terminal' | 'topology' | 'metrics'
-  const [isSimulating, setIsSimulating] = useState(false);
+  const [activePreviewTab, setActivePreviewTab] = useState('workflow'); // 'workflow' | 'code' | 'architecture'
 
   const currentProject = projects[activeProjectIndex];
-
-  const handleSimulateAction = () => {
-    setIsSimulating(true);
-    setTimeout(() => {
-      setIsSimulating(false);
-    }, 1500);
-  };
+  const snippet = projectCodeSnippets[currentProject.id] || projectCodeSnippets["devops-pipeline"];
 
   return (
     <section id="projects" className="py-24 bg-charcoal-900 border-t border-charcoal-800 relative">
@@ -41,13 +139,13 @@ export const ProjectsSection = () => {
         <div className="flex flex-col items-start mb-12 text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-crimson-950/60 border border-crimson-800/60 text-xs font-mono text-crimson-400 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-crimson-500"></span>
-            <span>ENTERPRISE PRODUCTION WORKLOADS</span>
+            <span>HANDS-ON PROJECTS & LABS</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            Featured DevOps & SRE Case Studies
+            Featured DevOps & Cloud Projects
           </h2>
           <p className="mt-3 text-slate-400 max-w-2xl text-base">
-            Split-screen architecture walkthroughs with live side-by-side interactive cluster terminals, topologies, and telemetry.
+            Practical architectures and automation workflows built to solve real deployment problems.
           </p>
         </div>
 
@@ -59,16 +157,16 @@ export const ProjectsSection = () => {
               id={`project-tab-${idx}`}
               onClick={() => {
                 setActiveProjectIndex(idx);
-                setActivePreviewTab('terminal');
+                setActivePreviewTab('workflow');
               }}
-              className={`px-5 py-3 rounded-xl font-medium text-sm flex items-center gap-2.5 transition-all duration-300 cursor-pointer ${
+              className={`px-4 py-2.5 rounded-xl font-medium text-xs sm:text-sm flex items-center gap-2 transition-all duration-200 cursor-pointer shrink-0 ${
                 activeProjectIndex === idx
                   ? 'bg-crimson-600 text-white shadow-glow-crimson-sm border border-crimson-400/50'
                   : 'bg-charcoal-800/80 text-slate-300 hover:text-white hover:bg-charcoal-750 border border-charcoal-700/80'
               }`}
             >
-              <span className="w-2 h-2 rounded-full bg-crimson-400"></span>
-              <span className="truncate">{proj.title}</span>
+              <span className={`w-2 h-2 rounded-full ${activeProjectIndex === idx ? 'bg-white' : 'bg-crimson-500'}`}></span>
+              <span>{proj.title}</span>
             </button>
           ))}
         </div>
@@ -76,8 +174,8 @@ export const ProjectsSection = () => {
         {/* Main 2-Column Split-Screen Showcase */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
           
-          {/* Left Column: Project Details, Architecture, SRE Metrics & Links */}
-          <div className="lg:col-span-6 glass-card rounded-2xl p-6 sm:p-8 border border-charcoal-700/80 flex flex-col justify-between text-left">
+          {/* Left Column: Project Details & Honest Learnings */}
+          <div className="lg:col-span-6 glass-card rounded-2xl p-6 sm:p-8 border border-charcoal-700 flex flex-col justify-between text-left">
             <div>
               {/* Badge & Title */}
               <div className="flex items-center gap-2 mb-3">
@@ -86,27 +184,37 @@ export const ProjectsSection = () => {
                 </span>
                 <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Live in Production
+                  Tested & Verified
                 </span>
               </div>
 
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-white mb-2 tracking-tight">
+              <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">
                 {currentProject.title}
               </h3>
-              <p className="text-sm font-medium text-crimson-400/90 mb-4 font-mono">
+              <p className="text-xs sm:text-sm font-medium text-crimson-400/90 mb-4 font-mono">
                 {currentProject.tagline}
               </p>
 
-              {/* Description */}
+              {/* Summary */}
               <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                {currentProject.description}
+                {currentProject.summary}
               </p>
+
+              {/* Why I Built It / The Problem */}
+              <div className="mb-6 p-3.5 rounded-xl bg-charcoal-950/80 border border-charcoal-800 text-xs">
+                <span className="font-mono text-crimson-400 font-semibold uppercase tracking-wider block mb-1">
+                  Why I built this:
+                </span>
+                <p className="text-slate-300 leading-relaxed">
+                  {currentProject.problemSolved}
+                </p>
+              </div>
 
               {/* Architecture Highlights */}
               <div className="mb-6">
                 <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5 text-crimson-400" />
-                  <span>Architecture Specifications</span>
+                  <span>Key Architecture Components</span>
                 </h4>
                 <ul className="space-y-2">
                   {currentProject.architecture.map((item, i) => (
@@ -118,23 +226,23 @@ export const ProjectsSection = () => {
                 </ul>
               </div>
 
-              {/* Key SRE Metrics */}
-              <div className="mb-6">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
-                  <Activity className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Key Reliability & SRE Metrics</span>
-                </h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {currentProject.sreMetrics.map((metric, i) => (
-                    <div key={i} className="bg-charcoal-900/90 rounded-lg p-2.5 border border-charcoal-700/60">
-                      <div className="text-[10px] font-mono text-slate-400 truncate">{metric.label}</div>
-                      <div className="text-base font-bold text-white font-mono mt-0.5 text-crimson-300">
-                        {metric.value}
-                      </div>
-                    </div>
-                  ))}
+              {/* Key Takeaways */}
+              {currentProject.takeaways && (
+                <div className="mb-6">
+                  <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Key Lessons & Optimization</span>
+                  </h4>
+                  <ul className="space-y-1.5">
+                    {currentProject.takeaways.map((takeaway, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-slate-300 leading-relaxed">
+                        <span className="text-emerald-400 font-bold">•</span>
+                        <span>{takeaway}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              </div>
+              )}
 
               {/* Tech Badges */}
               <div className="flex flex-wrap gap-1.5 mb-8">
@@ -156,87 +264,65 @@ export const ProjectsSection = () => {
                 target="_blank"
                 rel="noopener noreferrer"
                 id={`project-github-link-${activeProjectIndex}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 text-white font-medium text-sm border border-charcoal-600/80 hover:border-crimson-500/60 transition-all shadow-sm"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-charcoal-800 hover:bg-charcoal-700 text-white font-medium text-xs sm:text-sm border border-charcoal-700 hover:border-crimson-500 transition-all shadow-sm"
               >
                 <GitHubIcon className="w-4 h-4 text-crimson-400" />
-                <span>View Repository</span>
-              </a>
-
-              <a
-                href={currentProject.liveDemoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                id={`project-demo-link-${activeProjectIndex}`}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-crimson-600 to-crimson-700 hover:from-crimson-500 hover:to-crimson-600 text-white font-medium text-sm border border-crimson-400/40 shadow-glow-crimson-sm transition-all"
-              >
-                <ExternalLink className="w-4 h-4" />
-                <span>Live Infrastructure Demo</span>
+                <span>View Source on GitHub</span>
+                <ArrowUpRight className="w-3.5 h-3.5 text-slate-400" />
               </a>
             </div>
           </div>
 
-          {/* Right Column: Dynamic Mock Browser/Terminal Frame with Interactive Preview */}
+          {/* Right Column: Code Snippet & Realistic Workflow Logs */}
           <div className="lg:col-span-6 flex flex-col">
-            <div className="relative h-full rounded-2xl bg-charcoal-950 border border-charcoal-700/90 shadow-2xl overflow-hidden flex flex-col justify-between">
+            <div className="relative h-full rounded-2xl bg-charcoal-950 border border-charcoal-700 shadow-xl overflow-hidden flex flex-col justify-between">
               
-              {/* Mock Window Top Navigation */}
-              <div className="px-4 py-3 bg-charcoal-850/90 border-b border-charcoal-700/80 flex items-center justify-between">
+              {/* Tab Navigation */}
+              <div className="px-4 py-3 bg-charcoal-850/90 border-b border-charcoal-700 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-crimson-500/80"></div>
                   <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
                   <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
                   <span className="ml-2 font-mono text-xs text-slate-400 hidden sm:inline">
-                    terminal-agent://cluster-node-01
+                    inspect: {snippet.filename}
                   </span>
                 </div>
 
-                {/* Switch between Live Tabs */}
-                <div className="flex items-center gap-1 bg-charcoal-900 rounded-lg p-1 border border-charcoal-700/60 text-xs font-mono">
+                <div className="flex items-center gap-1 bg-charcoal-900 rounded-lg p-1 border border-charcoal-700 text-xs font-mono">
                   <button
-                    id="preview-tab-terminal"
-                    onClick={() => setActivePreviewTab('terminal')}
+                    id="preview-tab-workflow"
+                    onClick={() => setActivePreviewTab('workflow')}
                     className={`px-2.5 py-1 rounded transition-colors ${
-                      activePreviewTab === 'terminal'
+                      activePreviewTab === 'workflow'
                         ? 'bg-crimson-600 text-white font-semibold'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Terminal
+                    Workflow
                   </button>
                   <button
-                    id="preview-tab-topology"
-                    onClick={() => setActivePreviewTab('topology')}
+                    id="preview-tab-code"
+                    onClick={() => setActivePreviewTab('code')}
                     className={`px-2.5 py-1 rounded transition-colors ${
-                      activePreviewTab === 'topology'
+                      activePreviewTab === 'code'
                         ? 'bg-crimson-600 text-white font-semibold'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    Topology
-                  </button>
-                  <button
-                    id="preview-tab-metrics"
-                    onClick={() => setActivePreviewTab('metrics')}
-                    className={`px-2.5 py-1 rounded transition-colors ${
-                      activePreviewTab === 'metrics'
-                        ? 'bg-crimson-600 text-white font-semibold'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    Metrics
+                    Config Snippet
                   </button>
                 </div>
               </div>
 
-              {/* Interactive Panel Content */}
+              {/* Panel Content */}
               <div className="p-5 flex-1 flex flex-col justify-between overflow-y-auto min-h-[360px]">
                 
-                {/* TAB 1: TERMINAL EXECUTION LOGS */}
-                {activePreviewTab === 'terminal' && (
+                {/* TAB 1: WORKFLOW COMMAND STREAM */}
+                {activePreviewTab === 'workflow' && (
                   <div className="font-mono text-xs space-y-2 text-left">
                     <div className="flex items-center justify-between text-slate-500 pb-2 border-b border-charcoal-800">
-                      <span>Live Cluster Event Stream — {currentProject.title}</span>
-                      <span className="text-emerald-400 text-[10px]">● LIVE STREAM</span>
+                      <span>Execution sequence • {currentProject.title}</span>
+                      <span className="text-emerald-400 text-[10px]">● AUTOMATED</span>
                     </div>
 
                     {currentProject.terminalLogs.map((log, idx) => (
@@ -259,128 +345,45 @@ export const ProjectsSection = () => {
                     ))}
 
                     <div className="flex items-center gap-2 pt-3 text-crimson-400 font-mono">
-                      <span>devops@prod-runner:~$</span>
+                      <span>ansh@runner:~$</span>
                       <span className="w-2.5 h-4 bg-crimson-500 animate-terminal-blink inline-block"></span>
                     </div>
                   </div>
                 )}
 
-                {/* TAB 2: TOPOLOGY MAP */}
-                {activePreviewTab === 'topology' && (
-                  <div className="space-y-4 text-center my-auto">
-                    <div className="text-xs font-mono text-slate-400">High Availability Infrastructure Topology</div>
-                    
-                    <div className="grid grid-cols-3 gap-3 max-w-md mx-auto items-center">
-                      <div className="p-3 rounded-xl bg-charcoal-900 border border-charcoal-700 text-center">
-                        <Network className="w-5 h-5 text-crimson-400 mx-auto mb-1 animate-pulse" />
-                        <div className="text-[11px] font-mono text-white">AWS ALB / Ingress</div>
-                        <div className="text-[9px] text-emerald-400">443 / SSL Term</div>
-                      </div>
-
-                      <div className="text-slate-600 font-mono text-xs">➔ ➔ ➔</div>
-
-                      <div className="p-3 rounded-xl bg-charcoal-900 border border-crimson-500/60 shadow-glow-crimson-sm text-center">
-                        <Boxes className="w-5 h-5 text-crimson-400 mx-auto mb-1 animate-bounce" />
-                        <div className="text-[11px] font-mono text-white">Istio Envoy Mesh</div>
-                        <div className="text-[9px] text-amber-400">Weight 90 / 10</div>
-                      </div>
+                {/* TAB 2: CODE SNIPPET */}
+                {activePreviewTab === 'code' && (
+                  <div className="text-left font-mono text-xs">
+                    <div className="flex items-center justify-between pb-2 mb-3 border-b border-charcoal-800 text-slate-400">
+                      <span className="flex items-center gap-2">
+                        <FileCode className="w-3.5 h-3.5 text-crimson-400" />
+                        <span>{snippet.filename}</span>
+                      </span>
+                      <span className="text-[10px] text-slate-500 uppercase">{snippet.language}</span>
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4 max-w-md mx-auto pt-2">
-                      <div className="p-3 rounded-xl bg-charcoal-900/90 border border-charcoal-700 text-left">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                          <span className="text-xs font-bold text-white font-mono">Stable Pods (v2.8.3)</span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-mono">10 Replicas • 90% Traffic</div>
-                      </div>
-
-                      <div className="p-3 rounded-xl bg-crimson-950/40 border border-crimson-600/70 text-left">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="w-2 h-2 rounded-full bg-crimson-400 animate-ping"></span>
-                          <span className="text-xs font-bold text-white font-mono">Canary Pods (v2.8.4)</span>
-                        </div>
-                        <div className="text-[10px] text-crimson-300 font-mono">2 Replicas • 10% Traffic</div>
-                      </div>
-                    </div>
-
-                    <div className="text-[11px] font-mono text-emerald-400 pt-2 flex items-center justify-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4" />
-                      <span>Zero packet loss detected during failover simulation</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* TAB 3: SRE GRAFANA METRICS */}
-                {activePreviewTab === 'metrics' && (
-                  <div className="space-y-4 my-auto text-left">
-                    <div className="flex items-center justify-between text-xs font-mono text-slate-400 border-b border-charcoal-800 pb-2">
-                      <span>SRE Prometheus Telemetry Monitor</span>
-                      <span className="text-emerald-400">STATUS: NOMINAL</span>
-                    </div>
-
-                    <div className="space-y-3 font-mono text-xs">
-                      <div>
-                        <div className="flex justify-between mb-1 text-slate-300">
-                          <span>Cluster CPU Utilization</span>
-                          <span className="text-crimson-400 font-bold">28.4%</span>
-                        </div>
-                        <div className="w-full bg-charcoal-800 h-2.5 rounded-full overflow-hidden">
-                          <div className="bg-gradient-to-r from-emerald-500 to-crimson-500 h-full w-[28.4%] rounded-full"></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-1 text-slate-300">
-                          <span>Memory Working Set</span>
-                          <span className="text-amber-400 font-bold">42.1%</span>
-                        </div>
-                        <div className="w-full bg-charcoal-800 h-2.5 rounded-full overflow-hidden">
-                          <div className="bg-gradient-to-r from-blue-500 to-amber-500 h-full w-[42.1%] rounded-full"></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-1 text-slate-300">
-                          <span>HTTP 5xx Error Budget Burn Rate</span>
-                          <span className="text-emerald-400 font-bold">0.002% (Target &lt; 0.05%)</span>
-                        </div>
-                        <div className="w-full bg-charcoal-800 h-2.5 rounded-full overflow-hidden">
-                          <div className="bg-emerald-500 h-full w-[4%] rounded-full"></div>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="flex justify-between mb-1 text-slate-300">
-                          <span>p99 Latency (ms)</span>
-                          <span className="text-emerald-400 font-bold">24.6 ms</span>
-                        </div>
-                        <div className="w-full bg-charcoal-800 h-2.5 rounded-full overflow-hidden">
-                          <div className="bg-emerald-400 h-full w-[20%] rounded-full"></div>
-                        </div>
-                      </div>
-                    </div>
+                    <pre className="text-slate-200 overflow-x-auto p-3 rounded-lg bg-charcoal-900 border border-charcoal-800 leading-relaxed font-mono">
+                      <code>{snippet.code}</code>
+                    </pre>
                   </div>
                 )}
 
               </div>
 
-              {/* Bottom Interactive Simulation Trigger Bar */}
-              <div className="px-4 py-3 bg-charcoal-900 border-t border-charcoal-800 flex items-center justify-between">
-                <div className="text-xs font-mono text-slate-400 flex items-center gap-2">
+              {/* Bottom Card Footer */}
+              <div className="px-4 py-2.5 bg-charcoal-900 border-t border-charcoal-800 flex items-center justify-between text-xs font-mono text-slate-400">
+                <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  <span>Interactive Preview Mode</span>
+                  <span>Tested locally & on GitHub Actions</span>
                 </div>
-
-                <button
-                  onClick={handleSimulateAction}
-                  disabled={isSimulating}
-                  id={`project-simulate-btn-${activeProjectIndex}`}
-                  className="px-3 py-1.5 rounded-lg bg-crimson-600/30 hover:bg-crimson-600 text-crimson-300 hover:text-white font-mono text-xs border border-crimson-500/50 flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                <a
+                  href={currentProject.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-crimson-400 hover:text-crimson-300 flex items-center gap-1"
                 >
-                  <Play className="w-3.5 h-3.5" />
-                  <span>{isSimulating ? 'Simulating Traffic...' : 'Run Chaos Probe'}</span>
-                </button>
+                  <span>Repository</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
               </div>
 
             </div>

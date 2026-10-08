@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, Download, Menu, X, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Terminal, Download, Menu, X } from 'lucide-react';
 
 export const Navbar = ({ onOpenResume }) => {
   const [scrolled, setScrolled] = useState(false);
@@ -97,8 +97,8 @@ export const Navbar = ({ onOpenResume }) => {
           {/* Action CTA & Status Indicator */}
           <div className="hidden lg:flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-charcoal-800/80 border border-charcoal-700 text-xs font-mono text-emerald-400">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>SRE SLA 99.99%</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span>Open to Roles</span>
             </div>
 
             <button

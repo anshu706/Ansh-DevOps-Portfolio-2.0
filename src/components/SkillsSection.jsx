@@ -8,8 +8,6 @@ import {
   TerminalSquare, 
   Check, 
   Copy, 
-  ExternalLink,
-  Sparkles,
   Server,
   Cpu,
   RefreshCw,
@@ -83,13 +81,13 @@ export const SkillsSection = () => {
         <div className="flex flex-col items-start mb-12 text-left">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-crimson-950/60 border border-crimson-800/60 text-xs font-mono text-crimson-400 mb-3">
             <span className="w-1.5 h-1.5 rounded-full bg-crimson-500"></span>
-            <span>TECHNICAL PROFICIENCY MATRIX</span>
+            <span>SKILLS & TOOLCHAIN</span>
           </div>
           <h2 className="text-3xl sm:text-4xl font-bold text-white tracking-tight">
-            DevOps & Cloud Technology Stack
+            Technologies & Tools I Work With
           </h2>
           <p className="mt-3 text-slate-400 max-w-2xl text-base">
-            Battle-tested toolchains and platforms utilized for architecting scalable, self-healing cloud ecosystems.
+            The core platforms, utilities, and languages I use for automating infrastructure, shipping code, and monitoring systems.
           </p>
         </div>
 

@@ -1,13 +1,12 @@
 import React from 'react';
 import { 
   ArrowUp, 
-  Terminal, 
-  Heart,
-  ShieldCheck,
-  Radio
+  Terminal
 } from 'lucide-react';
 import { LinkedInIcon, GitHubIcon, LeetCodeIcon } from './Icons';
 import { personalInfo } from '../data/portfolioData';
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 export const Footer = () => {
   const scrollToTop = () => {
@@ -85,16 +84,16 @@ export const Footer = () => {
 
         </div>
 
-        {/* Bottom Bar: Copyright & SRE SLA */}
+        {/* Bottom Bar: Copyright & Status */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-mono text-slate-400">
           <div>
-            © {new Date().getFullYear()} Ansh Upadhayay. Built with React, Tailwind CSS & Framer Motion.
+            © {CURRENT_YEAR} Ansh Upadhayay • Computer Science @ Parul University
           </div>
 
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5 text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>All Systems Operational (99.99% SLO)</span>
+              <span>Open to Internships & Junior DevOps Roles</span>
             </span>
           </div>
         </div>
